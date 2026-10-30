@@ -12,6 +12,8 @@ const Merge = lazy(() => import('./pages/Merge'))
 const Split = lazy(() => import('./pages/Split'))
 const Rotate = lazy(() => import('./pages/Rotate'))
 const Reorder = lazy(() => import('./pages/Reorder'))
+const Flatten = lazy(() => import('./pages/Flatten'))
+const Protect = lazy(() => import('./pages/Protect'))
 
 function RouteFallback() {
   return (
@@ -41,6 +43,8 @@ export default function App() {
           <Route path="/split" element={<Split />} />
           <Route path="/rotate" element={<Rotate />} />
           <Route path="/reorder" element={<Reorder />} />
+          <Route path="/flatten" element={<Flatten />} />
+          <Route path="/protect" element={<Protect />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

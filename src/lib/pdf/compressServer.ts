@@ -1,6 +1,11 @@
 import type { CompressionLevel, CompressResult } from './compress'
 
-export const MAX_SERVER_BYTES = 50 * 1024 * 1024
+export const DEFAULT_MAX_SERVER_BYTES = 200 * 1024 * 1024
+
+export function formatUploadLimit(bytes: number): string {
+  const megabytes = bytes / (1024 * 1024)
+  return `${Number.isInteger(megabytes) ? megabytes : megabytes.toFixed(1)} MB`
+}
 
 const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined
 export const API_BASE = (RAW_API_BASE ?? '').replace(/\/+$/, '')
@@ -9,14 +14,18 @@ export interface CompressApiStatus {
   reachable: boolean
   ghostscript: boolean
   version: string | null
+  maxUploadBytes: number
 }
 
 export async function compressPdfOnServer(
   file: File,
   level: CompressionLevel = 'balanced',
+  maxUploadBytes = DEFAULT_MAX_SERVER_BYTES,
 ): Promise<CompressResult> {
-  if (file.size > MAX_SERVER_BYTES) {
-    throw new Error('Server mode accepts files up to 50 MB. Try in-browser mode instead.')
+  if (file.size > maxUploadBytes) {
+    throw new Error(
+      `Server mode accepts files up to ${formatUploadLimit(maxUploadBytes)}. Try in-browser mode instead.`,
+    )
   }
 
   const form = new FormData()
@@ -66,20 +75,35 @@ export async function checkCompressApi(): Promise<CompressApiStatus> {
     })
 
     if (!response.ok) {
-      return { reachable: false, ghostscript: false, version: null }
+      return {
+        reachable: false,
+        ghostscript: false,
+        version: null,
+        maxUploadBytes: DEFAULT_MAX_SERVER_BYTES,
+      }
     }
 
     const data = (await response.json()) as {
       ghostscript?: boolean
       version?: string | null
+      maxUploadBytes?: number
     }
 
     return {
       reachable: true,
       ghostscript: Boolean(data.ghostscript),
       version: data.version ?? null,
+      maxUploadBytes:
+        typeof data.maxUploadBytes === 'number' && data.maxUploadBytes > 0
+          ? data.maxUploadBytes
+          : DEFAULT_MAX_SERVER_BYTES,
     }
   } catch {
-    return { reachable: false, ghostscript: false, version: null }
+    return {
+      reachable: false,
+      ghostscript: false,
+      version: null,
+      maxUploadBytes: DEFAULT_MAX_SERVER_BYTES,
+    }
   }
 }

@@ -6,9 +6,10 @@ import ToolLayout from '../components/ToolLayout'
 import { usePdfFile } from '../hooks/usePdfFile'
 import { compressPdf, compressionSavings, type CompressionLevel } from '../lib/pdf/compress'
 import {
-  MAX_SERVER_BYTES,
+  DEFAULT_MAX_SERVER_BYTES,
   checkCompressApi,
   compressPdfOnServer,
+  formatUploadLimit,
 } from '../lib/pdf/compressServer'
 import { buildOutputName, downloadBlob, formatBytes, toPdfBlob } from '../lib/pdf/load'
 
@@ -33,6 +34,7 @@ export default function Compress() {
   const [processing, setProcessing] = useState(false)
   const [apiState, setApiState] = useState<ApiState>('checking')
   const [apiVersion, setApiVersion] = useState<string | null>(null)
+  const [maxUploadBytes, setMaxUploadBytes] = useState(DEFAULT_MAX_SERVER_BYTES)
   const [processError, setProcessError] = useState<string | null>(null)
   const [result, setResult] = useState<{
     originalSize: number
@@ -40,12 +42,15 @@ export default function Compress() {
     bytes: Uint8Array
     mode: CompressMode
   } | null>(null)
+  const maxUploadLabel = formatUploadLimit(maxUploadBytes)
 
   useEffect(() => {
     let cancelled = false
 
     checkCompressApi().then((status) => {
       if (cancelled) return
+
+      setMaxUploadBytes(status.maxUploadBytes)
 
       if (!status.reachable) {
         setApiState('offline')
@@ -71,8 +76,10 @@ export default function Compress() {
   const handleCompress = async () => {
     if (!file) return
 
-    if (mode === 'server' && file.size > MAX_SERVER_BYTES) {
-      setProcessError('Server mode accepts files up to 50 MB. Switch to in-browser mode.')
+    if (mode === 'server' && file.size > maxUploadBytes) {
+      setProcessError(
+        `Server mode accepts files up to ${maxUploadLabel}. Switch to in-browser mode.`,
+      )
       return
     }
 
@@ -82,7 +89,7 @@ export default function Compress() {
 
     try {
       if (mode === 'server') {
-        const output = await compressPdfOnServer(file, level)
+        const output = await compressPdfOnServer(file, level, maxUploadBytes)
         setResult({ ...output, mode: 'server' })
       } else {
         const output = await compressPdf(file, 'balanced')
@@ -117,13 +124,13 @@ export default function Compress() {
       title="Compress PDF"
       description="Make a PDF lighter. Ghostscript does the real image downsampling through a local API; in-browser mode strips structure without sending the file anywhere."
       steps={[
-        'Drop a PDF up to 50 MB for server mode.',
+        `Drop a PDF up to ${maxUploadLabel} for server mode.`,
         'Choose an engine and a compression level.',
         'Compress, check the savings, then download.',
       ]}
       meta={[
         { label: 'Engine', value: 'Ghostscript / pdf-lib' },
-        { label: 'Max size', value: '50 MB (server)' },
+        { label: 'Max size', value: `${maxUploadLabel} (server)` },
         { label: 'Output', value: 'PDF' },
       ]}
       note="Server mode sends the file to the local API on this machine. Temp files are deleted after every request. In-browser mode never leaves the tab."
@@ -134,7 +141,7 @@ export default function Compress() {
           if (files[0]) loadFile(files[0])
         }}
         label="Drop a PDF to compress"
-        hint="Single file · up to 50 MB in server mode"
+        hint={`Single file · up to ${maxUploadLabel} in server mode`}
         files={file ? [file] : []}
         onRemove={handleClear}
         disabled={loading || processing}

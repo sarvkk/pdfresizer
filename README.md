@@ -1,6 +1,6 @@
 # Sheet — PDF workshop
 
-A local-first PDF toolbox. Six precise tools, no accounts, no watermarks, and no third-party file uploads.
+A local-first PDF toolbox. Eight precise tools, no accounts, no watermarks, and no third-party file uploads.
 
 [![CI](https://github.com/sarvkk/pdfresizer/actions/workflows/ci.yml/badge.svg)](https://github.com/sarvkk/pdfresizer/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-17140f.svg)](LICENSE)
@@ -17,8 +17,10 @@ A local-first PDF toolbox. Six precise tools, no accounts, no watermarks, and no
 | **Split** | Browser | Extracts clicked pages or a typed range. |
 | **Rotate** | Browser | Rotates selected pages 90°, 180°, or 270° clockwise. |
 | **Reorder** | Browser | Rearranges pages by drag-and-drop or keyboard. |
+| **Flatten** | Browser | Rasterizes every page to an image so text cannot be selected, searched, or edited in Word. |
+| **Protect** | Local API | Applies viewer-enforced permissions with qpdf or adds a certificate-based DocMDP signature. |
 
-All browser-side work uses [`pdf-lib`](https://pdf-lib.js.org/) and stays in the tab. Compression is the only job that talks to a server — the one on your own machine.
+Browser-side work uses [`pdf-lib`](https://pdf-lib.js.org/) and [`pdf.js`](https://mozilla.github.io/pdf.js/) and stays in the tab. Compression and protection use the local API on your own machine.
 
 ![Resize PDF tool with a loaded document](docs/resize.webp)
 
@@ -27,13 +29,19 @@ All browser-side work uses [`pdf-lib`](https://pdf-lib.js.org/) and stays in the
 - Node.js 20.12+
 - [pnpm](https://pnpm.io)
 - [Ghostscript](https://www.ghostscript.com/) (`gs` on `PATH`) for server compression
+- [qpdf](https://qpdf.readthedocs.io/) (`qpdf` on `PATH`) for permission restrictions
+- A PKCS#12 (`.p12` or `.pfx`) certificate with its private key for certification
 
 ```bash
 # Debian / Ubuntu
 sudo apt install ghostscript
+# Permission restrictions
+sudo apt install qpdf
 
 # macOS
 brew install ghostscript
+# Permission restrictions
+brew install qpdf
 ```
 
 ## Development
@@ -69,6 +77,7 @@ Copy `.env.example` to `.env` if you need to override anything.
 | Variable | Used by | Default | Purpose |
 | --- | --- | --- | --- |
 | `PORT` | API | `8787` | API and production frontend port |
+| `MAX_UPLOAD_MB` | API | `200` | Largest PDF accepted by server compression, in megabytes |
 | `CORS_ORIGINS` | API | localhost:5173 / :4173 | Comma-separated browser origins allowed to call the API |
 | `VITE_API_BASE_URL` | Frontend | empty | Absolute API origin for split deployments; empty uses the Vite proxy |
 
@@ -89,23 +98,26 @@ Copy `.env.example` to `.env` if you need to override anything.
 src/
   components/      shared UI (drop zone, page grid, tool shell)
   hooks/           file loading and page metadata
-  lib/pdf/         pdf-lib operations: merge, split, rotate, reorder, resize, compress
+  lib/pdf/         pdf-lib page operations plus pdf.js flattening
   pages/           one page per tool, lazy-loaded
 server/index.ts    Hono API, Ghostscript runner, static file server
-tests/             Node test runner checks for page ranges and resize geometry
+tests/             Node test runner checks for page ranges, resize geometry, and flatten assembly
 ```
 
 - **Frontend:** React 19, React Router, Vite, TypeScript.
-- **PDF engine:** `pdf-lib` for browser operations.
+- **PDF engine:** `pdf-lib` for browser operations, `pdf.js` for rasterizing pages when flattening.
 - **Compression:** Hono + Ghostscript `pdfwrite`, with `/printer`, `/ebook`, and `/screen` presets.
+- **Protection:** qpdf permissions or a PKCS#7 detached signature with a DocMDP certification transform.
 - **Motion and styling:** hand-written CSS, with `prefers-reduced-motion` support.
 
 ## Limits and caveats
 
-- Server compression accepts files up to **50 MB** and deletes the temp directory after every request.
+- Server compression accepts files up to **200 MB** by default (set `MAX_UPLOAD_MB` to change it) and deletes the temp directory after every request.
 - In-browser compression rewrites structure and metadata; it cannot downsample images.
 - Resize re-embeds each page. Text remains selectable, but links, form fields, and annotations are not carried into the output.
 - Reorder and split copy pages into a new document, so page-level annotations and form fields are not preserved.
+- Flatten replaces every page with a JPEG image at 150, 200, or 300 DPI. The output has no text layer: it cannot be selected, searched, or converted into editable text in Word. It is not redaction — visible text can still be read by OCR — and image-heavy files are usually larger than the original.
+- Permissions are viewer-enforced and can be removed by tools such as qpdf; certification detects later changes but does not prevent them. Both protection modes run through the local API.
 - Password-protected PDFs are not supported.
 
 ## License

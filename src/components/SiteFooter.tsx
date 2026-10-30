@@ -7,6 +7,8 @@ const toolLinks = [
   { path: '/split', label: 'Split' },
   { path: '/rotate', label: 'Rotate' },
   { path: '/reorder', label: 'Reorder' },
+  { path: '/flatten', label: 'Flatten' },
+  { path: '/protect', label: 'Protect' },
 ]
 
 export default function SiteFooter() {
@@ -35,9 +37,11 @@ export default function SiteFooter() {
         <div className="footer-meta">
           <span className="footer-label">Colophon</span>
           <p>
-            pdf-lib in the browser.
+            pdf-lib and pdf.js in the browser.
             <br />
             Ghostscript for compression.
+            <br />
+            qpdf and PKCS#7 for protection.
           </p>
           <a
             className="footer-source"

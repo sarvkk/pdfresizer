@@ -7,6 +7,7 @@ export type IconName =
   | 'split'
   | 'rotate'
   | 'reorder'
+  | 'flatten'
   | 'upload'
   | 'download'
   | 'arrow'
@@ -53,6 +54,13 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M4 6h9M4 12h9M4 18h9" />
       <path d="M17 4v16M14 7l3-3 3 3M14 17l3 3 3-3" />
+    </>
+  ),
+  flatten: (
+    <>
+      <rect x="4" y="3" width="16" height="7" rx="1" />
+      <path d="M7.5 6.5h9" />
+      <path d="M12 13v7M8.5 16.5 12 20l3.5-3.5" />
     </>
   ),
   upload: (

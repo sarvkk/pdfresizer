@@ -62,6 +62,22 @@ const tools: Tool[] = [
     tag: 'On-device',
     icon: 'reorder',
   },
+  {
+    path: '/flatten',
+    number: '07',
+    title: 'Flatten',
+    summary: 'Turn every page into an image so text cannot be edited in Word.',
+    tag: 'On-device',
+    icon: 'flatten',
+  },
+  {
+    path: '/protect',
+    number: '08',
+    title: 'Protect',
+    summary: 'Add an owner password or certify the document so edits are detectable.',
+    tag: 'Local API',
+    icon: 'shield',
+  },
 ]
 
 const method = [
@@ -85,7 +101,7 @@ const method = [
 export default function Home() {
   usePageMeta(
     'Sheet — PDF workshop',
-    'Six precise PDF tools: compress, resize, merge, split, rotate, and reorder. No accounts, no uploads, no watermarks.',
+    'Eight precise PDF tools: compress, resize, merge, split, rotate, reorder, flatten, and protect. No accounts, no uploads, no watermarks.',
   )
 
   return (
@@ -103,9 +119,9 @@ export default function Home() {
                 <em>Order</em> out.
               </h1>
               <p className="hero-lede">
-                Six precise tools for the PDFs in your life. Compress, resize, merge, split,
-                rotate, and reorder — without an account, a watermark, or a round trip to someone
-                else&apos;s server.
+                Eight precise tools for the PDFs in your life. Compress, resize, merge, split,
+                rotate, reorder, flatten, and protect — without an account, a watermark, or a round
+                trip to someone else&apos;s server.
               </p>
 
               <div className="hero-actions">
@@ -139,7 +155,7 @@ export default function Home() {
 
               <div className="paper-stack">
                 <div className="paper paper-back">
-                  <span className="paper-meta">PDF / 01—06</span>
+                  <span className="paper-meta">PDF / 01—08</span>
                   <span className="paper-back-rule" />
                   <span className="paper-back-rule" />
                   <span className="paper-back-rule" />
@@ -186,7 +202,7 @@ export default function Home() {
             <header className="section-head">
               <p className="eyebrow">Service ledger</p>
               <h2 id="tools-title">
-                Six ways to <em>handle</em> a PDF.
+                Eight ways to <em>handle</em> a PDF.
               </h2>
               <p className="section-lede">
                 Start with the job, not the software. Each tool opens with one file, a few honest
@@ -251,10 +267,10 @@ export default function Home() {
             </div>
             <div className="privacy-copy">
               <p>
-                Merge, split, resize, rotate, and reorder run entirely on your device with
-                pdf-lib. Compression is the only job that may touch a server — and that server is
-                the one on your own machine, running Ghostscript. Temp files are deleted after
-                every request.
+                Merge, split, resize, rotate, reorder, and flatten run entirely on your device,
+                with pdf-lib for page work and pdf.js for rasterizing. Compression, permissions,
+                and certification use the local API — Ghostscript, qpdf, and a signing certificate
+                you supply — all on your own machine. Temp files are deleted after every request.
               </p>
               <Link to="/compress" className="text-link">
                 See how compression works

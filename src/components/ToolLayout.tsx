@@ -46,7 +46,7 @@ export default function ToolLayout({
         <div className="tool-heading">
           <span className="tool-index" aria-hidden="true">
             {number}
-            <small>/ 06</small>
+            <small>/ 08</small>
           </span>
           <div className="tool-heading-copy">
             <h1 className="tool-title">{title}</h1>

@@ -10,6 +10,13 @@ import {
   type ResizeOptions,
 } from '../src/lib/pdf/resize'
 import { parsePageRange } from '../src/lib/pdf/split'
+import {
+  FLATTEN_QUALITY,
+  MAX_RENDER_EDGE,
+  MAX_RENDER_PIXELS,
+  assembleFlattenedPdf,
+  computeRenderGeometry,
+} from '../src/lib/pdf/flatten'
 
 const A4_WIDTH = 210 * MM_TO_PT
 const A4_HEIGHT = 297 * MM_TO_PT
@@ -138,4 +145,54 @@ test('describeTargetSize names standard and custom sizes', () => {
     }),
     '100 × 150 mm',
   )
+})
+
+// A 1×1 white JPEG, used to exercise the flatten assembler without a canvas.
+const TINY_JPEG = Uint8Array.from(
+  Buffer.from(
+    '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==',
+    'base64',
+  ),
+)
+
+test('computeRenderGeometry converts DPI to pixels and caps oversized pages', () => {
+  const a4 = computeRenderGeometry(A4_WIDTH, A4_HEIGHT, FLATTEN_QUALITY.print.dpi)
+  assert.equal(a4.dpi, 300)
+  close(a4.width, 2480, 1)
+  close(a4.height, 3507, 1)
+
+  const huge = computeRenderGeometry(20000, 20000, 300)
+  assert.ok(huge.width <= MAX_RENDER_EDGE)
+  assert.ok(huge.height <= MAX_RENDER_EDGE)
+  assert.ok(huge.width * huge.height <= MAX_RENDER_PIXELS)
+  assert.ok(huge.dpi < 300)
+})
+
+test('assembleFlattenedPdf writes one image-backed page per rendered page', async () => {
+  const bytes = await assembleFlattenedPdf([
+    { bytes: TINY_JPEG, width: 595.28, height: 841.89 },
+    { bytes: TINY_JPEG, width: 841.89, height: 595.28 },
+  ])
+  const output = await PDFDocument.load(bytes)
+
+  assert.equal(output.getPageCount(), 2)
+  assert.equal(output.getCreator(), 'Sheet PDF Tools')
+
+  const first = output.getPage(0).getSize()
+  close(first.width, 595.28, 0.01)
+  close(first.height, 841.89, 0.01)
+
+  const second = output.getPage(1).getSize()
+  close(second.width, 841.89, 0.01)
+  close(second.height, 595.28, 0.01)
+})
+
+test('assembleFlattenedPdf rejects an empty document', async () => {
+  await assert.rejects(() => assembleFlattenedPdf([]), /no pages/i)
+})
+
+test('flatten quality presets stay ordered by resolution', () => {
+  assert.ok(FLATTEN_QUALITY.screen.dpi < FLATTEN_QUALITY.balanced.dpi)
+  assert.ok(FLATTEN_QUALITY.balanced.dpi < FLATTEN_QUALITY.print.dpi)
+  assert.equal(FLATTEN_QUALITY.balanced.dpi, 200)
 })
